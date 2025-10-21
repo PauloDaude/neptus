@@ -146,18 +146,20 @@ export const usePWAInstall = () => {
     // Aguarda um tempo para ver se o beforeinstallprompt dispara
     // Se não disparar, assume que precisa de instruções manuais
     let timeoutId: NodeJS.Timeout | undefined;
-    
+
     if (isMobile && !isIOS && !isInstalled) {
       console.log("⏰ Starting timer to wait for beforeinstallprompt...");
-      
+
       timeoutId = setTimeout(() => {
         console.log("⏰ Timeout reached, checking if prompt was captured", {
           hasDeferredPrompt: !!deferredPrompt,
         });
-        
+
         // Se após 10 segundos ainda não temos o prompt, mostra como manual
         if (!deferredPrompt) {
-          console.log("❌ No beforeinstallprompt after 10s, showing manual prompt");
+          console.log(
+            "❌ No beforeinstallprompt after 10s, showing manual prompt"
+          );
           setShowManualPrompt(true);
           setIsInstallable(true);
         }

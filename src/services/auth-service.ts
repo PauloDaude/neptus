@@ -1,3 +1,5 @@
+import { AxiosError } from "axios";
+
 import api from "@/lib/axios";
 import { LoginResponse } from "@/types/user-type";
 import { formatAndThrowError } from "@/utils/error-util";
@@ -13,6 +15,7 @@ export const login = async (loginData: {
     });
     return data;
   } catch (error) {
+    console.log("Erro ao fazer login:", (error as AxiosError).message);
     throw formatAndThrowError(error, "Erro ao fazer login, tente novamente");
   }
 };

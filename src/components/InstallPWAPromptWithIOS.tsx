@@ -18,6 +18,7 @@ const InstallPWAPrompt = () => {
     showManualInstructions,
     forceEngagement,
     canInstall,
+    deferredPrompt,
   } = usePWAInstall();
 
   const [isIOS, setIsIOS] = useState(false);
@@ -52,20 +53,17 @@ const InstallPWAPrompt = () => {
     if (isIOS && isSafari) {
       // No iOS, apenas mostra as instruções
       setShowIOSInstructions(true);
-    } else if (showManualPrompt) {
-      // Android sem prompt automático
-      if (engagementScore < 10) {
-        // Tenta forçar engagement primeiro
-        forceEngagement();
-        setTimeout(() => {
-          showManualInstructions();
-        }, 2000);
-      } else {
+    } else if (showManualPrompt || !deferredPrompt) {
+      // Android sem prompt automático OU sem deferredPrompt disponível
+      showManualInstructions();
+    } else {
+      // Android/Desktop - usa o método programático (quando deferredPrompt existe)
+      const installed = await installApp();
+
+      // Se falhar (não instalou), mostra instruções manuais
+      if (!installed) {
         showManualInstructions();
       }
-    } else {
-      // Android/Desktop - usa o método programático
-      await installApp();
     }
   };
 

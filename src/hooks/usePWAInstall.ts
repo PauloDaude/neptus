@@ -252,6 +252,7 @@ export const usePWAInstall = () => {
     forceEngagement,
     canInstall:
       (isInstallable && (!!deferredPrompt || isIOS)) || showManualPrompt,
+    deferredPrompt,
   };
 };
 

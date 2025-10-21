@@ -15,11 +15,11 @@ export const useLogin = () => {
         password: data.password,
       });
 
-      router.push("/");
-
       if (!result?.ok) {
         throw new Error(result?.error || "Email ou senha inválidos");
       }
+
+      router.push("/");
     },
   });
 };

@@ -35,6 +35,16 @@ const InstallPWAPrompt = () => {
     setIsIOS(iOS);
     setIsSafari(isSafariMobile);
 
+    console.log("📱 InstallPWAPrompt mounted", {
+      iOS,
+      isSafariMobile,
+      isInstalled,
+      isInstallable,
+      showManualPrompt,
+      hasDeferredPrompt: !!deferredPrompt,
+      isMobile,
+    });
+
     // No iOS Safari, mostra as instruções se não estiver instalado
     if (iOS && isSafariMobile && !isInstalled) {
       // Verifica se já está em modo standalone (instalado)
@@ -47,23 +57,34 @@ const InstallPWAPrompt = () => {
         setShowIOSInstructions(true);
       }
     }
-  }, [isInstalled]);
+  }, [isInstalled, isInstallable, showManualPrompt, deferredPrompt, isMobile]);
 
   const handleInstallClick = async () => {
+    console.log("🔘 Install button clicked", {
+      isIOS,
+      isSafari,
+      showManualPrompt,
+      hasDeferredPrompt: !!deferredPrompt,
+      isMobile,
+    });
+
     if (isIOS && isSafari) {
       // No iOS, apenas mostra as instruções
       setShowIOSInstructions(true);
-    } else if (showManualPrompt || !deferredPrompt) {
-      // Android sem prompt automático OU sem deferredPrompt disponível
-      showManualInstructions();
-    } else {
-      // Android/Desktop - usa o método programático (quando deferredPrompt existe)
+    } else if (deferredPrompt) {
+      // Tem o prompt automático disponível - usa ele!
+      console.log("✅ Using automatic prompt");
       const installed = await installApp();
 
       // Se falhar (não instalou), mostra instruções manuais
       if (!installed) {
+        console.log("❌ Automatic install failed, showing manual instructions");
         showManualInstructions();
       }
+    } else {
+      // Não tem prompt automático - mostra instruções manuais
+      console.log("📱 No deferred prompt, showing manual instructions");
+      showManualInstructions();
     }
   };
 

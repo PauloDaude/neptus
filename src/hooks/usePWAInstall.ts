@@ -106,7 +106,11 @@ export const usePWAInstall = () => {
     }
 
     const handleBeforeInstallPrompt = (e: Event) => {
-      console.log("🎉 beforeinstallprompt event captured on mobile:", isMobile);
+      console.log("🎉 beforeinstallprompt captured!", {
+        isMobile,
+        isIOS,
+        timestamp: new Date().toISOString(),
+      });
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
 
@@ -114,6 +118,7 @@ export const usePWAInstall = () => {
       if (!isInstalled) {
         setIsInstallable(true);
         setShowManualPrompt(false); // Remove prompt manual se o automático funcionar
+        console.log("✅ Set as installable with automatic prompt");
       }
     };
 
@@ -135,37 +140,32 @@ export const usePWAInstall = () => {
       localStorage.removeItem("pwa-install-dismissed");
     }
 
-    // Timeout para mostrar prompt manual no mobile Android se o automático não funcionar
-    if (isMobile && !isIOS && !isInstalled && !deferredPrompt) {
-      const timeout = setTimeout(() => {
-        console.log("⏰ Timeout: Engagement score:", engagementScore);
-
-        if (engagementScore < 10) {
-          console.log("💡 Baixo engagement - mostrando prompt manual");
-          setIsInstallable(true);
-          setShowManualPrompt(true);
-        } else {
-          console.log("🎯 Alto engagement - aguardando beforeinstallprompt");
-          // Se tem alto engagement, aguarda mais tempo para o prompt automático
-          setTimeout(() => {
-            if (!deferredPrompt) {
-              console.log(
-                "⏰ Prompt automático não apareceu - mostrando manual"
-              );
-              setIsInstallable(true);
-              setShowManualPrompt(true);
-            }
-          }, 30000); // Reduzido para 30 segundos
-        }
-      }, 5000); // Reduzido para 5 segundos para testar
-
-      return () => clearTimeout(timeout);
-    }
-
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     window.addEventListener("appinstalled", handleAppInstalled);
 
+    // Aguarda um tempo para ver se o beforeinstallprompt dispara
+    // Se não disparar, assume que precisa de instruções manuais
+    let timeoutId: NodeJS.Timeout | undefined;
+    
+    if (isMobile && !isIOS && !isInstalled) {
+      console.log("⏰ Starting timer to wait for beforeinstallprompt...");
+      
+      timeoutId = setTimeout(() => {
+        console.log("⏰ Timeout reached, checking if prompt was captured", {
+          hasDeferredPrompt: !!deferredPrompt,
+        });
+        
+        // Se após 10 segundos ainda não temos o prompt, mostra como manual
+        if (!deferredPrompt) {
+          console.log("❌ No beforeinstallprompt after 10s, showing manual prompt");
+          setShowManualPrompt(true);
+          setIsInstallable(true);
+        }
+      }, 10000); // 10 segundos
+    }
+
     return () => {
+      if (timeoutId) clearTimeout(timeoutId);
       window.removeEventListener(
         "beforeinstallprompt",
         handleBeforeInstallPrompt

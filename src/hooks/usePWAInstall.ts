@@ -5,7 +5,6 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-// Sistema de engagement para mobile
 let engagementScore = 0;
 let interactionCount = 0;
 let lastInteractionTime = 0;
@@ -13,15 +12,9 @@ let lastInteractionTime = 0;
 const trackEngagement = () => {
   const now = Date.now();
   interactionCount++;
-
   if (now - lastInteractionTime > 1000) {
-    // Apenas se passou 1s desde última interação
     engagementScore += 1;
     lastInteractionTime = now;
-    console.log("📊 Engagement:", {
-      score: engagementScore,
-      interactions: interactionCount,
-    });
   }
 };
 
@@ -43,14 +36,6 @@ export const usePWAInstall = () => {
         (window.navigator as any).standalone ||
         document.referrer.includes("android-app://");
 
-      console.log("📱 Installation check:", {
-        isStandalone,
-        displayMode: window.matchMedia("(display-mode: standalone)").matches,
-        navigatorStandalone: (window.navigator as { standalone?: boolean })
-          .standalone,
-        referrer: document.referrer,
-      });
-
       setIsInstalled(isStandalone);
 
       // Se já estiver instalado, não é instalável
@@ -69,12 +54,6 @@ export const usePWAInstall = () => {
       setIsIOS(iOS);
       setIsMobile(mobile);
 
-      console.log("🔍 Device detection:", {
-        iOS,
-        mobile,
-        userAgent: navigator.userAgent,
-      });
-
       // No iOS, sempre consideramos "instalável" mesmo sem o evento beforeinstallprompt
       if (iOS && !isInstalled) {
         setIsInstallable(true);
@@ -89,15 +68,11 @@ export const usePWAInstall = () => {
     checkIfInstalled();
     checkIfIOS();
 
-    // Sistema de engagement para forçar beforeinstallprompt no mobile
     if (isMobile && !isIOS && !isInstalled) {
-      // Adiciona listeners para trackear engagement
       const events = ["click", "scroll", "keydown", "touchstart", "touchend"];
       events.forEach((event) => {
         document.addEventListener(event, trackEngagement, { passive: true });
       });
-
-      // Cleanup dos listeners
       return () => {
         events.forEach((event) => {
           document.removeEventListener(event, trackEngagement);
@@ -106,24 +81,14 @@ export const usePWAInstall = () => {
     }
 
     const handleBeforeInstallPrompt = (e: Event) => {
-      console.log("🎉 beforeinstallprompt captured!", {
-        isMobile,
-        isIOS,
-        timestamp: new Date().toISOString(),
-      });
-      e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-
-      // Só marca como instalável se não estiver instalado
       if (!isInstalled) {
         setIsInstallable(true);
-        setShowManualPrompt(false); // Remove prompt manual se o automático funcionar
-        console.log("✅ Set as installable with automatic prompt");
+        setShowManualPrompt(false);
       }
     };
 
     const handleAppInstalled = () => {
-      console.log("App installed successfully");
       setIsInstallable(false);
       setDeferredPrompt(null);
       setIsInstalled(true);
@@ -143,27 +108,16 @@ export const usePWAInstall = () => {
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     window.addEventListener("appinstalled", handleAppInstalled);
 
-    // Aguarda um tempo para ver se o beforeinstallprompt dispara
-    // Se não disparar, assume que precisa de instruções manuais
+    // No mobile Android, aguarda apenas 2 segundos para dar chance ao beforeinstallprompt
+    // Se não disparar rapidamente, já mostra a opção manual
     let timeoutId: NodeJS.Timeout | undefined;
 
     if (isMobile && !isIOS && !isInstalled) {
-      console.log("⏰ Starting timer to wait for beforeinstallprompt...");
-
       timeoutId = setTimeout(() => {
-        console.log("⏰ Timeout reached, checking if prompt was captured", {
-          hasDeferredPrompt: !!deferredPrompt,
-        });
-
-        // Se após 10 segundos ainda não temos o prompt, mostra como manual
         if (!deferredPrompt) {
-          console.log(
-            "❌ No beforeinstallprompt after 10s, showing manual prompt"
-          );
           setShowManualPrompt(true);
-          setIsInstallable(true);
         }
-      }, 10000); // 10 segundos
+      }, 2000);
     }
 
     return () => {
@@ -185,8 +139,6 @@ export const usePWAInstall = () => {
       await deferredPrompt.prompt();
       const choiceResult = await deferredPrompt.userChoice;
 
-      console.log("User choice:", choiceResult.outcome);
-
       if (choiceResult.outcome === "accepted") {
         // O evento 'appinstalled' será disparado automaticamente
         return true;
@@ -198,7 +150,6 @@ export const usePWAInstall = () => {
         return false;
       }
     } catch (error) {
-      console.error("Error installing PWA:", error);
       return false;
     } finally {
       setIsInstalling(false);
@@ -212,25 +163,31 @@ export const usePWAInstall = () => {
   };
 
   const showManualInstructions = () => {
-    // Para Android Chrome
-    alert(
-      "Para instalar o app:\n\n" +
-        "1. Toque no menu (⋮) do Chrome\n" +
-        "2. Procure por 'Instalar app' ou 'Adicionar à tela inicial'\n" +
-        "3. Confirme a instalação\n\n" +
-        "💡 Dica: Use a opção 'Instalar app' se disponível para experiência nativa!\n\n" +
-        "Ou acesse as configurações do Chrome > Site e limpe os dados para resetar o prompt."
-    );
+    // Para Android Chrome - instruções claras e simples
+    const isAndroid = /Android/i.test(navigator.userAgent);
+
+    if (isAndroid) {
+      alert(
+        "📱 COMO INSTALAR O NEPTUS:\n\n" +
+          "1️⃣ Toque no menu (⋮) no canto superior direito\n\n" +
+          "2️⃣ Procure e toque em:\n" +
+          "   • 'Instalar app' OU\n" +
+          "   • 'Adicionar à tela inicial'\n\n" +
+          "3️⃣ Toque em 'Instalar' ou 'Adicionar'\n\n" +
+          "✅ Pronto! O app aparecerá na sua tela inicial como um app normal.\n\n" +
+          "💡 Dica: A opção 'Instalar app' oferece melhor experiência que 'Adicionar à tela inicial'."
+      );
+    } else {
+      alert(
+        "Para instalar o app, use o menu do navegador e procure por 'Instalar app' ou 'Adicionar à tela inicial'."
+      );
+    }
   };
 
   const forceEngagement = () => {
     // Força pontuação alta de engagement
     engagementScore = 20;
     interactionCount = 50;
-    console.log("🚀 Engagement forçado:", {
-      score: engagementScore,
-      interactions: interactionCount,
-    });
 
     // Tenta disparar eventos que o Chrome monitora
     setTimeout(() => {

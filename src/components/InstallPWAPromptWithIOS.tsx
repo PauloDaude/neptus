@@ -66,24 +66,33 @@ const InstallPWAPrompt = () => {
       showManualPrompt,
       hasDeferredPrompt: !!deferredPrompt,
       isMobile,
+      userAgent: navigator.userAgent,
     });
 
     if (isIOS && isSafari) {
       // No iOS, apenas mostra as instruções
+      console.log("📱 iOS Safari detected - showing instructions");
       setShowIOSInstructions(true);
     } else if (deferredPrompt) {
       // Tem o prompt automático disponível - usa ele!
-      console.log("✅ Using automatic prompt");
+      console.log("✅ deferredPrompt available - attempting automatic install");
       const installed = await installApp();
 
       // Se falhar (não instalou), mostra instruções manuais
       if (!installed) {
         console.log("❌ Automatic install failed, showing manual instructions");
         showManualInstructions();
+      } else {
+        console.log("🎉 App installed successfully!");
       }
     } else {
       // Não tem prompt automático - mostra instruções manuais
-      console.log("📱 No deferred prompt, showing manual instructions");
+      console.log(
+        "📱 No deferredPrompt available - showing manual instructions"
+      );
+      console.log(
+        "ℹ️ This is normal on Chrome mobile - it requires multiple visits and engagement"
+      );
       showManualInstructions();
     }
   };

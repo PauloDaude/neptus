@@ -5,7 +5,6 @@ import { Toaster } from "sonner";
 
 import Providers from "@/auth/Providers";
 import DataSyncManager from "@/components/DataSyncManager";
-import InstallPWAPrompt from "@/components/InstallPWAPromptWithIOS";
 import OfflineIndicator from "@/components/OfflineIndicator";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 
@@ -104,7 +103,6 @@ export default function RootLayout({
           <ServiceWorkerRegistration />
           <OfflineIndicator />
           <DataSyncManager />
-          <InstallPWAPrompt />
           <Toaster
             position="top-center"
             richColors

@@ -35,6 +35,40 @@ const Configurations = () => {
                 </div>
               </div>
 
+              {/* Instruções para Android */}
+              <div className="border-t pt-4">
+                <h4 className="font-medium mb-3">Como instalar no Android:</h4>
+                <ol className="text-sm text-muted-foreground space-y-2">
+                  <li className="flex items-start gap-2">
+                    <span className="w-5 h-5 bg-primary/20 text-primary rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0 mt-0.5">
+                      1
+                    </span>
+                    <span>
+                      Abra o menu do Chrome (⋮) no canto superior direito
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="w-5 h-5 bg-primary/20 text-primary rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0 mt-0.5">
+                      2
+                    </span>
+                    <span>
+                      Toque em <strong>&quot;Instalar app&quot;</strong> ou{" "}
+                      <strong>&quot;Adicionar à tela inicial&quot;</strong>
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="w-5 h-5 bg-primary/20 text-primary rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0 mt-0.5">
+                      3
+                    </span>
+                    <span>Confirme tocando em &quot;Instalar&quot;</span>
+                  </li>
+                </ol>
+                <p className="text-xs text-muted-foreground mt-3">
+                  💡 Dica: A opção &quot;Instalar app&quot; oferece melhor
+                  experiência que &quot;Adicionar à tela inicial&quot;
+                </p>
+              </div>
+
               <div className="border-t pt-4">
                 <h4 className="font-medium mb-2">
                   Vantagens do App Instalado:

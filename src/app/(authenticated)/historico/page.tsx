@@ -111,11 +111,6 @@ const History = () => {
     }
   };
 
-  const handleDelete = (id: string) => {
-    setSelectedItemId(id);
-    setIsDeleteDialogOpen(true);
-  };
-
   const confirmDelete = () => {
     // Remove do localStorage - precisa usar os dados originais, não os mapeados
     const originalData = getHistoryDataFromStorage();
@@ -508,7 +503,6 @@ const History = () => {
             ammonia={item.ammonia}
             waterColor={item.waterColor}
             onEdit={handleEdit}
-            onDelete={handleDelete}
           />
         ))}
       </div>

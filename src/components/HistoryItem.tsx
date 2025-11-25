@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, Edit, Trash2 } from "lucide-react";
+import { Clock, Edit } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
 
@@ -24,7 +24,6 @@ interface HistoryItemProps {
   ammonia: number;
   waterColor: number;
   onEdit?: (id: string) => void;
-  onDelete?: (id: string) => void;
 }
 
 const imageTanksList = [
@@ -49,7 +48,6 @@ const HistoryItem = ({
   ammonia,
   waterColor,
   onEdit,
-  onDelete,
 }: HistoryItemProps) => {
   const { color, text } = getQualityColor(turbidity);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
@@ -68,19 +66,9 @@ const HistoryItem = ({
             {time} - {date}
           </p>
         </div>
-        <div className="flex gap-2">
-          <AppButton size="sm" variant="outline" onClick={() => onEdit?.(id)}>
-            <Edit />
-          </AppButton>
-          <AppButton
-            size="sm"
-            variant="outline"
-            className="focus:border-destructive focus:text-destructive hover:border-destructive hover:text-destructive"
-            onClick={() => onDelete?.(id)}
-          >
-            <Trash2 />
-          </AppButton>
-        </div>
+        <AppButton size="sm" variant="outline" onClick={() => onEdit?.(id)}>
+          <Edit />
+        </AppButton>
       </div>
 
       <p

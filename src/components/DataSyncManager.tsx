@@ -4,162 +4,87 @@ import { CheckCircle, Upload, Wifi, WifiOff } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useInternetConnection } from "@/hooks/useInternetConnection";
-import { useOfflineDataStore } from "@/stores/offlineDataStore";
+import { useSyncInterval } from "@/hooks/useSync";
 
 export default function DataSyncManager() {
   const { isOnline } = useInternetConnection();
-  const { getUnsyncedReadings, markReadingAsSynced, clearSyncedReadings } =
-    useOfflineDataStore();
-  const [syncStatus, setSyncStatus] = useState<
+  const { isSyncing, pendingCount, error, sync } = useSyncInterval(30000);
+  const [displayStatus, setDisplayStatus] = useState<
     "idle" | "syncing" | "synced" | "error"
   >("idle");
-  const [unsyncedCount, setUnsyncedCount] = useState(0);
 
   useEffect(() => {
-    const unsynced = getUnsyncedReadings();
-    setUnsyncedCount(unsynced.length);
-  }, [getUnsyncedReadings]);
+    if (isSyncing) {
+      setDisplayStatus("syncing");
+    } else if (error) {
+      setDisplayStatus("error");
+    } else if (pendingCount === 0) {
+      setDisplayStatus("idle");
+    }
+  }, [isSyncing, error, pendingCount]);
 
   useEffect(() => {
-    const syncData = async () => {
-      const unsyncedReadings = getUnsyncedReadings();
-
-      if (unsyncedReadings.length === 0) {
-        return;
-      }
-
-      setSyncStatus("syncing");
-
-      try {
-        // TODO: Replace with actual API call
-        // Simulate API sync
-        for (const reading of unsyncedReadings) {
-          // Simulate network delay
-          await new Promise((resolve) => setTimeout(resolve, 500));
-
-          // In a real implementation, you would send each reading to your API
-          // const response = await fetch('/api/sensor-readings', {
-          //   method: 'POST',
-          //   headers: { 'Content-Type': 'application/json' },
-          //   body: JSON.stringify(reading),
-          // });
-
-          // if (response.ok) {
-          markReadingAsSynced(reading.id);
-          // }
-        }
-
-        setSyncStatus("synced");
-
-        // Clear synced readings after a delay
-        setTimeout(() => {
-          clearSyncedReadings();
-          setSyncStatus("idle");
-        }, 3000);
-      } catch (error) {
-        console.error("Sync failed:", error);
-        setSyncStatus("error");
-
-        // Reset status after showing error
-        setTimeout(() => {
-          setSyncStatus("idle");
-        }, 3000);
-      }
-    };
-
-    if (isOnline && unsyncedCount > 0) {
-      syncData();
+    if (isSyncing) {
+      setDisplayStatus("syncing");
+    } else if (error) {
+      setDisplayStatus("error");
+    } else if (pendingCount === 0) {
+      setDisplayStatus("idle");
     }
-  }, [
-    isOnline,
-    unsyncedCount,
-    getUnsyncedReadings,
-    markReadingAsSynced,
-    clearSyncedReadings,
-  ]);
+  }, [isSyncing, error, pendingCount]);
 
-  const manualSync = async () => {
-    const unsyncedReadings = getUnsyncedReadings();
-
-    if (unsyncedReadings.length === 0) {
-      return;
-    }
-
-    setSyncStatus("syncing");
-
+  const handleManualSync = async () => {
     try {
-      // TODO: Replace with actual API call
-      // Simulate API sync
-      for (const reading of unsyncedReadings) {
-        // Simulate network delay
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        // In a real implementation, you would send each reading to your API
-        // const response = await fetch('/api/sensor-readings', {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify(reading),
-        // });
-
-        // if (response.ok) {
-        markReadingAsSynced(reading.id);
-        // }
-      }
-
-      setSyncStatus("synced");
-
-      // Clear synced readings after a delay
+      await sync();
+      setDisplayStatus("synced");
       setTimeout(() => {
-        clearSyncedReadings();
-        setSyncStatus("idle");
+        setDisplayStatus("idle");
       }, 3000);
-    } catch (error) {
-      console.error("Sync failed:", error);
-      setSyncStatus("error");
-
-      // Reset status after showing error
+    } catch (err) {
+      console.error("Erro ao sincronizar:", err);
+      setDisplayStatus("error");
       setTimeout(() => {
-        setSyncStatus("idle");
+        setDisplayStatus("idle");
       }, 3000);
     }
   };
 
-  // Don't show anything if there's nothing to sync
-  if (unsyncedCount === 0 && syncStatus === "idle") {
+  // Não mostra se não há nada para sincronizar
+  if (pendingCount === 0 && displayStatus === "idle") {
     return null;
   }
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border p-3 flex items-center gap-2 text-sm">
-        {syncStatus === "syncing" && (
+        {displayStatus === "syncing" && (
           <>
             <Upload className="w-4 h-4 animate-spin text-blue-500" />
-            <span>Sincronizando {unsyncedCount} leituras...</span>
+            <span>Sincronizando {pendingCount} leituras...</span>
           </>
         )}
 
-        {syncStatus === "synced" && (
+        {displayStatus === "synced" && (
           <>
             <CheckCircle className="w-4 h-4 text-green-500" />
             <span>Dados sincronizados!</span>
           </>
         )}
 
-        {syncStatus === "error" && (
+        {displayStatus === "error" && (
           <>
             <WifiOff className="w-4 h-4 text-red-500" />
             <span>Erro na sincronização</span>
           </>
         )}
 
-        {syncStatus === "idle" && unsyncedCount > 0 && (
+        {displayStatus === "idle" && pendingCount > 0 && (
           <>
             <Wifi className="w-4 h-4 text-orange-500" />
-            <span>{unsyncedCount} leituras pendentes</span>
+            <span>{pendingCount} leituras pendentes</span>
             {isOnline && (
               <button
-                onClick={manualSync}
+                onClick={handleManualSync}
                 className="ml-2 px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600"
               >
                 Sincronizar

@@ -1,10 +1,12 @@
-import { db, readingsDb } from "./index";
+import { getDb, readingsDb } from "./index";
 
 /**
  * Migra dados do localStorage para IndexedDB
  * Essa função deve ser executada uma única vez quando o app for atualizado
  */
-export async function migrateFromLocalStorage(propertyId: string): Promise<void> {
+export async function migrateFromLocalStorage(
+  propertyId: string
+): Promise<void> {
   try {
     // Verifica se já existe dados no IndexedDB
     const existingReadings = await readingsDb.getByProperty(propertyId);
@@ -32,6 +34,7 @@ export async function migrateFromLocalStorage(propertyId: string): Promise<void>
     // Migra para IndexedDB
     console.log(`Migrando ${readings.length} leituras para IndexedDB...`);
 
+    const db = getDb();
     for (const reading of readings) {
       await db.readings.add({
         id: reading.id || crypto.randomUUID(),
@@ -43,8 +46,12 @@ export async function migrateFromLocalStorage(propertyId: string): Promise<void>
         oxigenio: reading.dissolvedOxygen || reading.oxigenio,
         amonia: reading.amonia,
         imagem_cor: reading.imagem_cor,
-        createdAt: new Date(reading.createdAt || reading.timestamp || Date.now()),
-        updatedAt: new Date(reading.updatedAt || reading.timestamp || Date.now()),
+        createdAt: new Date(
+          reading.createdAt || reading.timestamp || Date.now()
+        ),
+        updatedAt: new Date(
+          reading.updatedAt || reading.timestamp || Date.now()
+        ),
         syncStatus: "pending",
       });
     }

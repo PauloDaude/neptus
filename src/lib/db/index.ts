@@ -1,16 +1,16 @@
-import { db, Property, Reading, Tank } from "./schema";
+import { getDb, Property, Reading, Tank } from "./schema";
 
 // Funções para Readings
 export const readingsDb = {
   // Buscar leitura por ID
   async getById(id: string): Promise<Reading | undefined> {
-    return await db.readings.get(id);
+    return await getDb().readings.get(id);
   },
 
   // Buscar todas as leituras de uma propriedade
   async getByProperty(propertyId: string): Promise<Reading[]> {
-    return await db.readings
-      .where("propertyId")
+    return await getDb()
+      .readings.where("propertyId")
       .equals(propertyId)
       .reverse()
       .sortBy("createdAt");
@@ -18,8 +18,8 @@ export const readingsDb = {
 
   // Buscar leituras de um tanque específico
   async getByTank(tankId: string): Promise<Reading[]> {
-    return await db.readings
-      .where("tankId")
+    return await getDb()
+      .readings.where("tankId")
       .equals(tankId)
       .reverse()
       .sortBy("createdAt");
@@ -32,7 +32,7 @@ export const readingsDb = {
     const id = crypto.randomUUID();
     const now = new Date();
 
-    await db.readings.add({
+    await getDb().readings.add({
       ...reading,
       id,
       createdAt: now,
@@ -45,12 +45,15 @@ export const readingsDb = {
 
   // Buscar leituras pendentes de sincronização
   async getPending(): Promise<Reading[]> {
-    return await db.readings.where("syncStatus").equals("pending").toArray();
+    return await getDb()
+      .readings.where("syncStatus")
+      .equals("pending")
+      .toArray();
   },
 
   // Marcar como sincronizada
   async markAsSynced(id: string): Promise<void> {
-    await db.readings.update(id, {
+    await getDb().readings.update(id, {
       syncStatus: "synced",
       syncedAt: new Date(),
     });
@@ -58,7 +61,7 @@ export const readingsDb = {
 
   // Marcar como erro
   async markAsError(id: string, errorMessage: string): Promise<void> {
-    await db.readings.update(id, {
+    await getDb().readings.update(id, {
       syncStatus: "error",
       errorMessage,
     });
@@ -66,7 +69,12 @@ export const readingsDb = {
 
   // Limpar todas as leituras de uma propriedade
   async clearByProperty(propertyId: string): Promise<void> {
-    await db.readings.where("propertyId").equals(propertyId).delete();
+    await getDb().readings.where("propertyId").equals(propertyId).delete();
+  },
+
+  // Salvar múltiplas leituras (para sincronização)
+  async bulkPut(readings: Reading[]): Promise<void> {
+    await getDb().readings.bulkPut(readings);
   },
 };
 
@@ -74,7 +82,7 @@ export const readingsDb = {
 export const tanksDb = {
   // Buscar tanques de uma propriedade
   async getByProperty(propertyId: string): Promise<Tank[]> {
-    return await db.tanks.where("propertyId").equals(propertyId).toArray();
+    return await getDb().tanks.where("propertyId").equals(propertyId).toArray();
   },
 
   // Adicionar tanque
@@ -84,7 +92,7 @@ export const tanksDb = {
     const id = crypto.randomUUID();
     const now = new Date();
 
-    await db.tanks.add({
+    await getDb().tanks.add({
       ...tank,
       id,
       createdAt: now,
@@ -97,12 +105,12 @@ export const tanksDb = {
 
   // Salvar múltiplos tanques (para sincronização)
   async bulkPut(tanks: Tank[]): Promise<void> {
-    await db.tanks.bulkPut(tanks);
+    await getDb().tanks.bulkPut(tanks);
   },
 
   // Limpar tanques de uma propriedade
   async clearByProperty(propertyId: string): Promise<void> {
-    await db.tanks.where("propertyId").equals(propertyId).delete();
+    await getDb().tanks.where("propertyId").equals(propertyId).delete();
   },
 };
 
@@ -110,37 +118,37 @@ export const tanksDb = {
 export const propertiesDb = {
   // Buscar todas as propriedades
   async getAll(): Promise<Property[]> {
-    return await db.properties.toArray();
+    return await getDb().properties.toArray();
   },
 
   // Buscar propriedade por ID
   async getById(id: string): Promise<Property | undefined> {
-    return await db.properties.get(id);
+    return await getDb().properties.get(id);
   },
 
   // Salvar propriedade
   async save(property: Property): Promise<void> {
-    await db.properties.put(property);
+    await getDb().properties.put(property);
   },
 
   // Salvar múltiplas propriedades
   async bulkPut(properties: Property[]): Promise<void> {
-    await db.properties.bulkPut(properties);
+    await getDb().properties.bulkPut(properties);
   },
 
   // Limpar todas as propriedades
   async clear(): Promise<void> {
-    await db.properties.clear();
+    await getDb().properties.clear();
   },
 };
 
 // Função para limpar todos os dados
 export async function clearAllData(): Promise<void> {
-  await db.readings.clear();
-  await db.tanks.clear();
-  await db.properties.clear();
+  await getDb().readings.clear();
+  await getDb().tanks.clear();
+  await getDb().properties.clear();
 }
 
 // Exportar a instância do banco também
-export { db };
+export { getDb };
 export type { Property, Reading, Tank };

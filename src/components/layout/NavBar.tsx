@@ -9,7 +9,12 @@ import {
   RefreshCcw,
   Waves,
 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { useState } from "react";
+import { toast } from "sonner";
+
+import { useSync } from "@/hooks/useSync";
+import { syncManager } from "@/lib/sync/manager";
 
 import AppButton, { AppButtonLogout } from "../AppButton";
 import {
@@ -23,9 +28,47 @@ import NavLink from "./NavLink";
 
 const NavBar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const { data: session } = useSession();
+  const sync = useSync();
 
   const handleLinkClick = () => {
     setIsOpen(false);
+  };
+
+  const handleSync = async () => {
+    if (!session?.access_token) {
+      toast.error("Você precisa estar logado para sincronizar");
+      return;
+    }
+
+    setIsSyncing(true);
+    toast.loading("Enviando dados pendentes...", { id: "sync-toast" });
+
+    try {
+      // Executa sincronização (apenas upload)
+      const result = await sync.sync();
+
+      if (result.success) {
+        if (result.syncedCount > 0) {
+          toast.success(
+            `${result.syncedCount} leitura(s) enviada(s) com sucesso!`,
+            { id: "sync-toast" }
+          );
+        } else {
+          toast.success("Todos os dados estão sincronizados!", {
+            id: "sync-toast",
+          });
+        }
+      } else {
+        toast.error("Erro ao sincronizar dados", { id: "sync-toast" });
+      }
+    } catch (error) {
+      console.error("Erro durante sincronização:", error);
+      toast.error("Erro ao sincronizar dados", { id: "sync-toast" });
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   return (
@@ -83,9 +126,13 @@ const NavBar = () => {
                 className="w-full"
                 size="lg"
                 tabIndex={-1}
+                onClick={handleSync}
+                disabled={isSyncing}
               >
-                <RefreshCcw />
-                <span className="text-base">Sincronizar</span>
+                <RefreshCcw className={isSyncing ? "animate-spin" : ""} />
+                <span className="text-base">
+                  {isSyncing ? "Sincronizando..." : "Sincronizar"}
+                </span>
               </AppButton>
             </div>
           </div>

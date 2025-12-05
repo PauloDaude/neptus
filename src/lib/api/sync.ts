@@ -112,7 +112,10 @@ export async function syncReadingsBatch(readings: Reading[]): Promise<{
 /**
  * Sincroniza leituras de uma propriedade específica
  */
-export async function syncPropertyReadings(propertyId: string, readings: Reading[]) {
+export async function syncPropertyReadings(
+  propertyId: string,
+  readings: Reading[]
+) {
   const propertyReadings = readings.filter((r) => r.propertyId === propertyId);
   return syncReadingsBatch(propertyReadings);
 }

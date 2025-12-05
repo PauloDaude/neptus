@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { getReadings, convertAPIReadingToLocal } from "@/lib/api/readings";
+import { convertAPIReadingToLocal, getReadings } from "@/lib/api/readings";
 import { readingsDb } from "@/lib/db";
 import type { Reading } from "@/lib/db/schema";
 
@@ -49,9 +49,7 @@ export function useReadings({ tankId, perPage = 50 }: UseReadingsOptions) {
       setHasMorePages(response.pagina_atual < response.total_paginas);
     } catch (err) {
       console.error("Erro ao buscar leituras:", err);
-      setError(
-        err instanceof Error ? err.message : "Erro ao buscar leituras"
-      );
+      setError(err instanceof Error ? err.message : "Erro ao buscar leituras");
     } finally {
       setIsLoading(false);
       isFetchingRef.current = false;
@@ -94,9 +92,7 @@ export function useReadings({ tankId, perPage = 50 }: UseReadingsOptions) {
       setHasMorePages(nextPage < response.total_paginas);
     } catch (err) {
       console.error("Erro ao carregar mais leituras:", err);
-      setError(
-        err instanceof Error ? err.message : "Erro ao carregar mais"
-      );
+      setError(err instanceof Error ? err.message : "Erro ao carregar mais");
     } finally {
       setIsLoadingMore(false);
       isFetchingRef.current = false;

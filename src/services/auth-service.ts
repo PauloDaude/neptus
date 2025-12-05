@@ -15,7 +15,7 @@ export const login = async (loginData: {
     });
     return data;
   } catch (error) {
-    console.log("Erro ao fazer login:", (error as AxiosError).message);
+    console.log("Erro ao fazer login:", (error as AxiosError));
     throw formatAndThrowError(error, "Erro ao fazer login, tente novamente");
   }
 };

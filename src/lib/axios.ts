@@ -2,7 +2,7 @@ import axios from "axios";
 import { ApiError } from "next/dist/server/api-utils";
 
 const api = axios.create({
-  baseURL: "https://neptus.publicvm.com",
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "https://neptus.publicvm.com",
   headers: {
     "Content-Type": "application/json",
   },
@@ -21,13 +21,13 @@ api.interceptors.response.use(
       return Promise.reject(
         new ApiError(
           apiError.status || error.response?.status,
-          `${apiError.code}: ${apiError.message}`,
-        ),
+          `${apiError.code}: ${apiError.message}`
+        )
       );
     }
 
     return Promise.reject(new ApiError(500, "UnknownError: Erro desconhecido"));
-  },
+  }
 );
 
 export default api;

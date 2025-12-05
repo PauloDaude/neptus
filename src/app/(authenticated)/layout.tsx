@@ -1,17 +1,44 @@
+"use client";
+
 import { ReactNode } from "react";
 
 import AuthGuard from "@/components/AuthGuard";
+import InitialDataSync from "@/components/InitialDataSync";
 import Header from "@/components/layout/Header";
+import { useNeedsInitialSync } from "@/hooks/useNeedsInitialSync";
 
 const LayoutAuthenticated = ({
   children,
 }: Readonly<{ children: ReactNode }>) => {
+  // TODO: Buscar propertyId da sessão ou API do usuário
+  // Por enquanto, pega do localStorage
+  const propertyId =
+    typeof window !== "undefined"
+      ? localStorage.getItem("propertyId") || undefined
+      : undefined;
+
+  const { needsSync, isChecking } = useNeedsInitialSync(propertyId);
+
   return (
     <AuthGuard>
-      <div className="min-h-screen flex flex-col max-w-[430px] mx-auto">
-        <Header />
-        <main className="flex-1 p-5 w-full">{children}</main>
-      </div>
+      {isChecking ? (
+        // Loading state enquanto verifica
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
+            <p className="text-muted-foreground">Carregando...</p>
+          </div>
+        </div>
+      ) : needsSync && propertyId ? (
+        // Mostra tela de sincronização inicial
+        <InitialDataSync propertyId={propertyId} />
+      ) : (
+        // Layout normal
+        <div className="min-h-screen flex flex-col max-w-[430px] mx-auto">
+          <Header />
+          <main className="flex-1 p-5 w-full">{children}</main>
+        </div>
+      )}
     </AuthGuard>
   );
 };

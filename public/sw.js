@@ -84,6 +84,11 @@ self.addEventListener("fetch", function (event) {
     return;
   }
 
+  const url = new URL(event.request.url);
+  if (url.pathname.startsWith("/api/auth")) {
+    return;
+  }
+
   // Para navegação de páginas (HTML)
   if (
     event.request.mode === "navigate" ||

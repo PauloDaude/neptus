@@ -1,10 +1,11 @@
+import { ApiError } from "next/dist/server/api-utils";
 import { DefaultSession, getServerSession, NextAuthOptions } from "next-auth";
 import { JWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
 
 import { login } from "@/services/auth-service";
 import { UserSession } from "@/types/user-type";
-import { formatAndThrowError } from "@/utils/error-util";
+import { getFriendlyMessage } from "@/utils/error-util";
 declare module "next-auth/jwt" {
   interface JWT extends UserSession {
     sub: string;
@@ -36,12 +37,20 @@ export const options: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials) return null;
 
-        const response = await login(credentials);
-        return {
-          ...response.usuario,
-          access_token: response.access_token,
-          refresh_token: response.refresh_token,
-        };
+        try {
+          const response = await login(credentials);
+          return {
+            ...response.usuario,
+            access_token: response.access_token,
+            refresh_token: response.refresh_token,
+          };
+        } catch (error) {
+          if (error instanceof ApiError || error instanceof Error) {
+            const friendlyMessage = getFriendlyMessage(error);
+            throw new Error(friendlyMessage || error.message);
+          }
+          throw new Error("Erro ao fazer login, tente novamente");
+        }
       },
     }),
   ],

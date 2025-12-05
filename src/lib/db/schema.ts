@@ -20,9 +20,14 @@ export interface Reading {
 
 export interface Tank {
   id: string;
+  userId: string;
   propertyId: string;
   name: string;
-  description?: string;
+  area: number;
+  fishType: string;
+  fishWeight: number;
+  fishCount: number;
+  active: boolean;
   createdAt: Date;
   updatedAt: Date;
   syncStatus: "synced" | "pending" | "error";
@@ -45,14 +50,37 @@ export class AppDatabase extends Dexie {
   constructor() {
     super("neptus-db");
 
-    // Define o schema
+    // Schema v1 (original)
     this.version(1).stores({
       readings: "id, propertyId, tankId, createdAt, syncStatus",
       tanks: "id, propertyId, name",
       properties: "id, name",
     });
+
+    // Schema v2 (atualizado com campos da API)
+    this.version(2).stores({
+      readings: "id, propertyId, tankId, createdAt, syncStatus",
+      tanks: "id, propertyId, userId, name, fishType, active",
+      properties: "id, name",
+    });
   }
 }
 
-// Instância única do banco
-export const db = new AppDatabase();
+// Instância única do banco (lazy initialization para evitar erro no servidor)
+let _db: AppDatabase | null = null;
+
+export function getDb(): AppDatabase {
+  if (typeof window === "undefined") {
+    throw new Error("Database can only be accessed on client side");
+  }
+  if (!_db) {
+    _db = new AppDatabase();
+  }
+  return _db;
+}
+
+// Alias para compatibilidade
+export const db =
+  typeof window !== "undefined"
+    ? new AppDatabase()
+    : (null as unknown as AppDatabase);

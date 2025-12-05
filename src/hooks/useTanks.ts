@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { v4 as uuidv4 } from "uuid";
 
+import { tanksDb } from "@/lib/db";
+import type { Tank as DBTank } from "@/lib/db/schema";
 import { AddTankSchema } from "@/schemas/addTank-schema";
 
 export interface Tank {
@@ -14,129 +15,125 @@ export interface Tank {
   createdAt: string;
 }
 
-// Tipo para tanques antigos (sem os novos campos)
-interface LegacyTank {
-  id: string;
-  name: string;
-  type: string;
-  fish: string;
-  createdAt: string;
-  fishCount?: number;
-  averageWeight?: number;
-  tankArea?: number;
-}
-
-const TANKS_STORAGE_KEY = "tanks";
-
-// Tanques padrão iniciais
-const defaultTanks: Tank[] = [
-  {
-    id: "1",
-    name: "Tanque de Tilápia",
-    type: "elevado",
-    fish: "tilapia",
-    fishCount: 150,
-    averageWeight: 0.8,
-    tankArea: 25.0,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "2",
-    name: "Tanque de Carpa",
-    type: "escavado",
-    fish: "carpa",
-    fishCount: 200,
-    averageWeight: 1.2,
-    tankArea: 40.0,
-    createdAt: new Date().toISOString(),
-  },
-];
+/**
+ * Hook para gerenciar tanques usando IndexedDB
+ * IMPORTANTE: Requer propertyId configurado em localStorage
+ */
 export const useTanks = () => {
   const [tanks, setTanks] = useState<Tank[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Carregar tanques do localStorage
+  // Converte Tank do IndexedDB para formato do componente
+  const convertFromDB = (dbTank: DBTank): Tank => ({
+    id: dbTank.id,
+    name: dbTank.name,
+    type: dbTank.fishType, // Usando fishType como type temporariamente
+    fish: dbTank.fishType,
+    fishCount: dbTank.fishCount,
+    averageWeight: dbTank.fishWeight,
+    tankArea: dbTank.area,
+    createdAt: dbTank.createdAt.toISOString(),
+  });
+
+  // Carregar tanques do IndexedDB
   useEffect(() => {
-    try {
-      const storedTanks = localStorage.getItem(TANKS_STORAGE_KEY);
-      if (storedTanks) {
-        const parsedTanks = JSON.parse(storedTanks);
+    const loadTanks = async () => {
+      try {
+        // Busca propertyId do localStorage
+        const propertyId = localStorage.getItem("propertyId");
 
-        // Migração: adicionar campos faltantes aos tanques existentes
-        const migratedTanks: Tank[] = parsedTanks.map((tank: LegacyTank) => ({
-          ...tank,
-          fishCount: tank.fishCount ?? 100,
-          averageWeight: tank.averageWeight ?? 1.0,
-          tankArea: tank.tankArea ?? 30.0,
-        }));
+        if (!propertyId) {
+          console.warn(
+            "⚠️ PropertyId não configurado. Configure com: localStorage.setItem('propertyId', 'seu-property-id-aqui')"
+          );
+          setTanks([]);
+          setIsLoading(false);
+          return;
+        }
 
-        setTanks(migratedTanks);
+        // Busca tanques do IndexedDB
+        const dbTanks = await tanksDb.getByProperty(propertyId);
 
-        // Salvar os tanques migrados de volta
-        localStorage.setItem(TANKS_STORAGE_KEY, JSON.stringify(migratedTanks));
-      } else {
-        // Se não houver tanques salvos, usar os padrão
-        setTanks(defaultTanks);
-        localStorage.setItem(TANKS_STORAGE_KEY, JSON.stringify(defaultTanks));
+        // Converte para formato do componente
+        const convertedTanks = dbTanks.map(convertFromDB);
+
+        setTanks(convertedTanks);
+      } catch (error) {
+        console.error("Erro ao carregar tanques do IndexedDB:", error);
+        setTanks([]);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Erro ao carregar tanques:", error);
-      setTanks(defaultTanks);
-    } finally {
-      setIsLoading(false);
-    }
+    };
+
+    loadTanks();
   }, []);
 
-  // Salvar tanques no localStorage
-  const saveTanks = useCallback((newTanks: Tank[]) => {
+  // Recarregar tanques do IndexedDB
+  const reloadTanks = useCallback(async () => {
     try {
-      localStorage.setItem(TANKS_STORAGE_KEY, JSON.stringify(newTanks));
-      setTanks(newTanks);
+      const propertyId = localStorage.getItem("propertyId");
+      if (!propertyId) {
+        setTanks([]);
+        return;
+      }
+
+      const dbTanks = await tanksDb.getByProperty(propertyId);
+      const convertedTanks = dbTanks.map(convertFromDB);
+      setTanks(convertedTanks);
     } catch (error) {
-      console.error("Erro ao salvar tanques:", error);
+      console.error("Erro ao recarregar tanques:", error);
     }
   }, []);
 
-  // Adicionar tanque
+  // Adicionar tanque (salva no IndexedDB com status pending)
   const addTank = useCallback(
-    (tankData: AddTankSchema) => {
-      const newTank: Tank = {
-        id: uuidv4(),
-        name: tankData.name,
-        type: tankData.type,
-        fish: tankData.fish,
-        fishCount: tankData.fishCount,
-        averageWeight: tankData.averageWeight,
-        tankArea: tankData.tankArea,
-        createdAt: new Date().toISOString(),
-      };
+    async (tankData: AddTankSchema) => {
+      try {
+        const propertyId = localStorage.getItem("propertyId");
+        if (!propertyId) {
+          throw new Error("PropertyId não configurado");
+        }
 
-      const updatedTanks = [...tanks, newTank];
-      saveTanks(updatedTanks);
-      return newTank;
+        const userId = "local-user"; // TODO: Pegar do session
+
+        const id = await tanksDb.add({
+          propertyId,
+          userId,
+          name: tankData.name,
+          area: tankData.tankArea,
+          fishType: tankData.fish,
+          fishWeight: tankData.averageWeight,
+          fishCount: tankData.fishCount,
+          active: true,
+        });
+
+        // Recarrega a lista
+        await reloadTanks();
+
+        return { id, ...tankData, createdAt: new Date().toISOString() } as Tank;
+      } catch (error) {
+        console.error("Erro ao adicionar tanque:", error);
+        throw error;
+      }
     },
-    [tanks, saveTanks]
+    [reloadTanks]
   );
 
-  // Atualizar tanque
+  // Atualizar tanque (não implementado ainda - requer API)
   const updateTank = useCallback(
-    (id: string, tankData: AddTankSchema) => {
-      const updatedTanks = tanks.map((tank) =>
-        tank.id === id ? { ...tank, ...tankData } : tank
-      );
-      saveTanks(updatedTanks);
+    async (id: string, tankData: AddTankSchema) => {
+      console.warn("updateTank não implementado - requer API de atualização");
+      // TODO: Implementar quando houver API de update
     },
-    [tanks, saveTanks]
+    []
   );
 
-  // Deletar tanque
-  const deleteTank = useCallback(
-    (id: string) => {
-      const updatedTanks = tanks.filter((tank) => tank.id !== id);
-      saveTanks(updatedTanks);
-    },
-    [tanks, saveTanks]
-  );
+  // Deletar tanque (não implementado ainda - requer API)
+  const deleteTank = useCallback(async (id: string) => {
+    console.warn("deleteTank não implementado - requer API de deleção");
+    // TODO: Implementar quando houver API de delete
+  }, []);
 
   // Buscar tanque por ID
   const getTankById = useCallback(

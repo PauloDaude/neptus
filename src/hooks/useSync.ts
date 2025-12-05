@@ -50,19 +50,20 @@ export function useSync() {
  * @param intervalMs - Intervalo em milissegundos (padrão: 30000 = 30s)
  */
 export function useSyncInterval(intervalMs = 30000) {
-  const sync = useSync();
+  const { sync, ...status } = useSync();
 
   useEffect(() => {
     // Sincroniza ao montar
-    sync.sync().catch(console.error);
+    syncManager.sync().catch(console.error);
 
     // Sincroniza em intervalo
     const interval = setInterval(() => {
-      sync.sync().catch(console.error);
+      syncManager.sync().catch(console.error);
     }, intervalMs);
 
     return () => clearInterval(interval);
-  }, [sync, intervalMs]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [intervalMs]); // Remove 'sync' das dependências para evitar loop
 
-  return sync;
+  return { sync, ...status };
 }

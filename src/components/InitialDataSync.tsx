@@ -1,14 +1,13 @@
 "use client";
 
 import { CheckCircle, Download, Loader2 } from "lucide-react";
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { syncManager } from "@/lib/sync/manager";
-
 import { Button } from "@/components/ui/button";
+import { syncManager } from "@/lib/sync/manager";
 
 interface InitialDataSyncProps {
   propertyId: string;

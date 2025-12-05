@@ -15,7 +15,7 @@ export function useNeedsInitialSync(propertyId?: string) {
       try {
         // Verifica se já marcou como sincronizado
         const hasInitialSync = localStorage.getItem("hasInitialSync");
-        
+
         if (hasInitialSync === "true") {
           setNeedsSync(false);
           setIsChecking(false);

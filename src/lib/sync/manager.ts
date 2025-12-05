@@ -364,7 +364,9 @@ export class SyncManager {
         syncedCount = uploadResult.syncedIds.length;
         failedCount = uploadResult.failedReadings.length;
 
-        console.log(`✓ Upload: ${syncedCount} enviadas, ${failedCount} falhadas`);
+        console.log(
+          `✓ Upload: ${syncedCount} enviadas, ${failedCount} falhadas`
+        );
       } else {
         console.log("✓ Nenhuma leitura pendente para enviar");
       }

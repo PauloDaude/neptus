@@ -2,7 +2,7 @@ import axios from "axios";
 import { ApiError } from "next/dist/server/api-utils";
 
 const api = axios.create({
-  baseURL: "https://neptus.publicvm.com",
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
   headers: {
     "Content-Type": "application/json",
   },

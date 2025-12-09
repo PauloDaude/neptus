@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { useAppStore } from "@/stores/propertyStore";
 import { getUserIdFromToken } from "@/utils/jwt-util";
@@ -14,9 +14,17 @@ import { useUserById } from "./useUsers";
  */
 export const useInitializeUserData = () => {
   const { setUserData, clearUserData } = useAppStore();
+  const [userId, setUserId] = useState<string | null>(null);
 
   // Obter ID do usuário do token JWT
-  const userId = getUserIdFromToken();
+  useEffect(() => {
+    const fetchUserId = async () => {
+      const id = await getUserIdFromToken();
+      setUserId(id);
+    };
+
+    fetchUserId();
+  }, []);
 
   // Buscar dados do usuário
   const { data: user, isLoading: isLoadingUser } = useUserById(

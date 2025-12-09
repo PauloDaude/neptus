@@ -1,6 +1,7 @@
 import "./globals.css";
 
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Toaster } from "sonner";
 
 import Providers from "@/auth/Providers";
@@ -83,6 +84,13 @@ export default function RootLayout({
   return (
     <html lang="pt-br">
       <head>
+        {process.env.NODE_ENV === "development" && (
+          <Script
+            src="//unpkg.com/react-grab/dist/index.global.js"
+            crossOrigin="anonymous"
+            strategy="beforeInteractive"
+          />
+        )}
         <meta name="application-name" content="Neptus" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta

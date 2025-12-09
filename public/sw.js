@@ -1,9 +1,11 @@
 // Service Worker integrado com sistema de autenticação offline do Neptus
 // Baseado na documentação oficial do Next.js + lógica personalizada
 
-const CACHE_NAME = "neptus-v1";
-const STATIC_CACHE = "neptus-static-v1";
-const PAGE_CACHE = "neptus-pages-v1";
+// Versionamento do cache - incrementar quando houver mudanças importantes
+const CACHE_VERSION = "v2";
+const CACHE_NAME = `neptus-${CACHE_VERSION}`;
+const STATIC_CACHE = `neptus-static-${CACHE_VERSION}`;
+const PAGE_CACHE = `neptus-pages-${CACHE_VERSION}`;
 
 // Recursos essenciais que sempre devem estar disponíveis offline
 const ESSENTIAL_RESOURCES = [
@@ -59,10 +61,10 @@ self.addEventListener("activate", function (event) {
       .then(function (cacheNames) {
         return Promise.all(
           cacheNames.map(function (cacheName) {
+            // Remove TODOS os caches antigos que não correspondem à versão atual
             if (
-              cacheName !== CACHE_NAME &&
-              cacheName !== STATIC_CACHE &&
-              cacheName !== PAGE_CACHE
+              !cacheName.includes(CACHE_VERSION) &&
+              (cacheName.includes("neptus") || cacheName.includes("workbox"))
             ) {
               console.log("SW: Limpando cache antigo:", cacheName);
               return caches.delete(cacheName);
@@ -77,11 +79,34 @@ self.addEventListener("activate", function (event) {
   );
 });
 
+// Listener para mensagens do cliente (para forçar atualização)
+self.addEventListener("message", function (event) {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    console.log("SW: Recebido SKIP_WAITING, ativando imediatamente");
+    self.skipWaiting();
+  }
+});
+
 // Fetch event - estratégia personalizada para funcionalidade offline
 self.addEventListener("fetch", function (event) {
   // Ignora requests não HTTP/HTTPS
   if (!event.request.url.startsWith("http")) {
     return;
+  }
+
+  const url = new URL(event.request.url);
+  
+  // IMPORTANTE: Não intercepta requisições de API - deixa passar direto pelo navegador
+  // Isso evita problemas de CSP e garante que o axios funcione corretamente
+  // Verifica se é uma requisição de API (contém /v1/ ou /v2/ etc, ou é para um domínio diferente)
+  const isApiRequest = 
+    url.pathname.includes("/v1/") || 
+    url.pathname.includes("/v2/") ||
+    url.pathname.includes("/api/") ||
+    url.origin !== self.location.origin; // Requisições para outros domínios (APIs externas)
+
+  if (isApiRequest) {
+    return; // Deixa o navegador lidar com a requisição normalmente
   }
 
   // Para navegação de páginas (HTML)
@@ -95,27 +120,30 @@ self.addEventListener("fetch", function (event) {
     return;
   }
 
-  // Para recursos estáticos (imagens, fontes, JS, CSS)
+  // Para recursos estáticos - estratégias diferentes
   if (
     event.request.destination === "image" ||
-    event.request.destination === "font" ||
-    event.request.destination === "script" ||
-    event.request.destination === "style"
+    event.request.destination === "font"
   ) {
+    // Imagens e fontes: Cache First (podem ser cacheadas)
     event.respondWith(handleStaticResource(event.request));
     return;
   }
 
-  // Para APIs e outros requests - sempre Network First
-  event.respondWith(
-    fetch(event.request).catch(() => {
-      // Se API falhar offline, não retorna cache para evitar dados incorretos
-      return new Response('{"error": "Offline"}', {
-        status: 503,
-        headers: { "Content-Type": "application/json" },
-      });
-    })
-  );
+  // Para JS e CSS: Network First (sempre busca versão mais recente)
+  if (
+    event.request.destination === "script" ||
+    event.request.destination === "style" ||
+    url.pathname.includes("/_next/static/") ||
+    url.pathname.endsWith(".js") ||
+    url.pathname.endsWith(".css")
+  ) {
+    event.respondWith(handleJavaScriptCSS(event.request));
+    return;
+  }
+
+  // Para outros requests - não intercepta, deixa passar
+  return;
 });
 
 // Função para lidar com requests de páginas
@@ -200,7 +228,7 @@ async function handlePageRequest(request) {
   );
 }
 
-// Função para lidar com recursos estáticos
+// Função para lidar com recursos estáticos (imagens, fontes)
 async function handleStaticResource(request) {
   // Cache First para recursos estáticos
   const cachedResponse = await caches.match(request);
@@ -218,6 +246,40 @@ async function handleStaticResource(request) {
   } catch (error) {
     console.log("SW: Erro ao buscar recurso estático:", error);
     // Para recursos estáticos, se falhar, não retorna nada (deixa o browser lidar)
+    throw error;
+  }
+}
+
+// Função para lidar com JavaScript e CSS - Network First
+async function handleJavaScriptCSS(request) {
+  try {
+    // SEMPRE tenta buscar da rede primeiro (versão mais recente)
+    const response = await fetch(request, {
+      cache: "no-cache", // Força buscar da rede
+    });
+    
+    if (response.ok) {
+      // Atualiza o cache com a versão mais recente
+      const cache = await caches.open(STATIC_CACHE);
+      cache.put(request, response.clone());
+      return response;
+    }
+    
+    // Se a rede falhou, tenta cache como fallback
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+      console.log("SW: Usando cache para JS/CSS (rede falhou)");
+      return cachedResponse;
+    }
+    
+    return response;
+  } catch (error) {
+    // Se a rede falhou completamente, tenta cache
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+      console.log("SW: Usando cache para JS/CSS (offline)");
+      return cachedResponse;
+    }
     throw error;
   }
 }

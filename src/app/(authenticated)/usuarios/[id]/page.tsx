@@ -2,8 +2,8 @@
 
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Edit } from "lucide-react";
-import { useParams } from "next/navigation";
+import { Edit, Trash2 } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -16,23 +16,27 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import UserPropertyItem from "@/components/UserPropertyItem";
-import { useUpdateUser, useUserById } from "@/hooks/useUsers";
+import { useDeleteUser, useUpdateUser, useUserById } from "@/hooks/useUsers";
 import { UpdateUserSchema } from "@/schemas/user-schema";
 
 import ModalAddPropertyToUser from "./_components/ModalAddPropertyToUser";
 
 const UserDetail = () => {
   const params = useParams();
+  const router = useRouter();
   const userId = params.id as string;
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const { data: user, isLoading, refetch } = useUserById(userId, true);
   const updateUserMutation = useUpdateUser();
+  const deleteUserMutation = useDeleteUser();
 
   const handleEdit = async (data: UpdateUserSchema) => {
     try {
@@ -55,6 +59,21 @@ const UserDetail = () => {
 
   const handleEditClick = () => {
     setIsEditDialogOpen(true);
+  };
+
+  const handleDeleteClick = () => {
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deleteUserMutation.mutateAsync(userId);
+      toast.success("Usuário desativado com sucesso!");
+      router.push("/usuarios");
+    } catch (error) {
+      toast.error("Erro ao desativar usuário");
+      console.error("Erro ao desativar usuário:", error);
+    }
   };
 
   // Formatação de data
@@ -122,9 +141,19 @@ const UserDetail = () => {
             <p className="text-sm text-muted-foreground">Nome</p>
             <p className="font-medium">{user.nome}</p>
           </div>
-          <AppButton variant="outline" size="sm" onClick={handleEditClick}>
-            <Edit className="w-4 h-4" />
-          </AppButton>
+          <div className="flex gap-2">
+            <AppButton variant="outline" size="sm" onClick={handleEditClick}>
+              <Edit className="w-4 h-4" />
+            </AppButton>
+            <AppButton
+              variant="outline"
+              size="sm"
+              onClick={handleDeleteClick}
+              className="hover:border-destructive hover:text-destructive"
+            >
+              <Trash2 className="w-4 h-4" />
+            </AppButton>
+          </div>
         </div>
         <div>
           <p className="text-sm text-muted-foreground">Email</p>
@@ -204,6 +233,38 @@ const UserDetail = () => {
                 isLoading={updateUserMutation.isPending}
               >
                 Salvar alterações
+              </AppButton>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de confirmação de exclusão */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmar desativação</DialogTitle>
+            <DialogDescription>
+              Tem certeza de que deseja desativar o usuário &ldquo;
+              {user.nome}&rdquo;?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <div className="grid grid-cols-2 gap-2">
+              <AppButton
+                variant="outline"
+                onClick={() => setIsDeleteDialogOpen(false)}
+                disabled={deleteUserMutation.isPending}
+              >
+                Cancelar
+              </AppButton>
+              <AppButton
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={deleteUserMutation.isPending}
+                isLoading={deleteUserMutation.isPending}
+              >
+                Desativar
               </AppButton>
             </div>
           </DialogFooter>

@@ -493,24 +493,33 @@ const History = () => {
       </div>
 
       <div className="flex flex-col gap-5">
-        {filteredData.map((item) => (
-          <HistoryItem
-            key={item.id}
-            id={item.id}
-            time={item.time}
-            date={item.date}
-            tankName={item.tankName}
-            turbidity={item.turbidity}
-            temperature={item.temperature}
-            quality={item.quality as "Bom" | "Regular" | "Ruim"}
-            oxygen={item.oxygen}
-            ph={item.ph}
-            ammonia={item.ammonia}
-            waterColor={item.waterColor}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
-        ))}
+        {filteredData.length === 0 ? (
+          <p className="text-muted-foreground text-center py-8">
+            Nenhum registro encontrado.
+            {dateRange?.from || dateRange?.to
+              ? " Tente ajustar o filtro de data."
+              : " Adicione o primeiro registro!"}
+          </p>
+        ) : (
+          filteredData.map((item) => (
+            <HistoryItem
+              key={item.id}
+              id={item.id}
+              time={item.time}
+              date={item.date}
+              tankName={item.tankName}
+              turbidity={item.turbidity}
+              temperature={item.temperature}
+              quality={item.quality as "Bom" | "Regular" | "Ruim"}
+              oxygen={item.oxygen}
+              ph={item.ph}
+              ammonia={item.ammonia}
+              waterColor={item.waterColor}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+            />
+          ))
+        )}
       </div>
 
       {/* Modal de confirmação de exclusão */}

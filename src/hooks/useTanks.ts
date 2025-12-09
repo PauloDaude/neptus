@@ -28,29 +28,6 @@ interface LegacyTank {
 
 const TANKS_STORAGE_KEY = "tanks";
 
-// Tanques padrão iniciais
-const defaultTanks: Tank[] = [
-  {
-    id: "1",
-    name: "Tanque de Tilápia",
-    type: "elevado",
-    fish: "tilapia",
-    fishCount: 150,
-    averageWeight: 0.8,
-    tankArea: 25.0,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "2",
-    name: "Tanque de Carpa",
-    type: "escavado",
-    fish: "carpa",
-    fishCount: 200,
-    averageWeight: 1.2,
-    tankArea: 40.0,
-    createdAt: new Date().toISOString(),
-  },
-];
 export const useTanks = () => {
   const [tanks, setTanks] = useState<Tank[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -75,13 +52,12 @@ export const useTanks = () => {
         // Salvar os tanques migrados de volta
         localStorage.setItem(TANKS_STORAGE_KEY, JSON.stringify(migratedTanks));
       } else {
-        // Se não houver tanques salvos, usar os padrão
-        setTanks(defaultTanks);
-        localStorage.setItem(TANKS_STORAGE_KEY, JSON.stringify(defaultTanks));
+        // Se não houver tanques salvos, iniciar com array vazio
+        setTanks([]);
       }
     } catch (error) {
       console.error("Erro ao carregar tanques:", error);
-      setTanks(defaultTanks);
+      setTanks([]);
     } finally {
       setIsLoading(false);
     }

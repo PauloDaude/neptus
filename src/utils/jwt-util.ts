@@ -38,15 +38,65 @@ export interface JWTPayload {
 }
 
 /**
- * Obtém o ID do usuário do token JWT armazenado
+ * Obtém o ID do usuário do token JWT armazenado na sessão do NextAuth
  * @returns ID do usuário ou null
  */
-export function getUserIdFromToken(): string | null {
-  if (typeof window === "undefined") return null;
+export async function getUserIdFromToken(): Promise<string | null> {
+  if (typeof window === "undefined") {
+    console.warn("getUserIdFromToken: window is undefined (SSR)");
+    return null;
+  }
 
-  const token = localStorage.getItem("access_token");
-  if (!token) return null;
+  try {
+    // Importar dinamicamente para evitar problemas de SSR
+    const { getSession } = await import("next-auth/react");
+    const session = await getSession();
 
-  const payload = decodeJWT<JWTPayload>(token);
-  return payload?.sub || null;
+    if (!session) {
+      console.warn("getUserIdFromToken: No session found");
+      return null;
+    }
+
+    if (!session.access_token) {
+      console.warn("getUserIdFromToken: No access_token in session");
+      return null;
+    }
+
+    console.log(
+      "getUserIdFromToken: Token found in session, attempting to decode..."
+    );
+    const payload = decodeJWT<JWTPayload>(session.access_token);
+
+    if (!payload) {
+      console.error("getUserIdFromToken: Failed to decode JWT payload");
+      return null;
+    }
+
+    console.log("getUserIdFromToken: Payload decoded successfully", {
+      sub: payload.sub,
+      nome: payload.nome,
+      email: payload.email,
+    });
+
+    if (!payload.sub) {
+      console.error("getUserIdFromToken: Payload.sub is missing or empty");
+      return null;
+    }
+
+    return payload.sub;
+  } catch (error) {
+    console.error("getUserIdFromToken: Error getting session", error);
+    return null;
+  }
+}
+
+/**
+ * Versão síncrona que tenta obter o ID do usuário da sessão do NextAuth
+ * Nota: Esta é uma versão de fallback, prefira usar a versão async
+ */
+export function getUserIdFromTokenSync(): string | null {
+  console.warn(
+    "getUserIdFromTokenSync: Using sync version, this may not work correctly"
+  );
+  return null;
 }

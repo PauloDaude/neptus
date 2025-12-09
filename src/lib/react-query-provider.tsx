@@ -13,9 +13,12 @@ export function ReactQueryClientProvider({
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 1000 * 60 * 5,
+            staleTime: 0, // Sempre considera dados stale para forçar refetch
             retry: 2,
-            refetchOnWindowFocus: false,
+            refetchOnWindowFocus: true, // Refetch quando a janela ganha foco
+            refetchOnMount: true, // Sempre refetch ao montar
+            refetchOnReconnect: true, // Refetch ao reconectar
+            gcTime: 0, // Não mantém cache após desmontar (gcTime substitui cacheTime no v5)
           },
           mutations: {
             retry: false,

@@ -1,10 +1,31 @@
-import AccountConfigForm from "@/components/forms/AccountConfigForm";
+"use client";
+
+import { useEffect, useState } from "react";
+
 import InstallAppButton, { InstallInfo } from "@/components/InstallAppButton";
 import IOSInstallInfo from "@/components/IOSInstallInfo";
+import LoadingSpinner from "@/components/LoadingSpinner";
 import PageHeader from "@/components/PageHeader";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useUserById } from "@/hooks/useUsers";
+import { getUserIdFromToken } from "@/utils/jwt-util";
 
 const Configurations = () => {
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Obter ID do usuário do token JWT
+  useEffect(() => {
+    const fetchUserId = async () => {
+      const id = await getUserIdFromToken();
+      setUserId(id);
+    };
+    fetchUserId();
+  }, []);
+
+  // Buscar dados do usuário logado
+  const { data: user, isLoading } = useUserById(userId || "", !!userId);
+
   return (
     <main className="space-y-5">
       <PageHeader
@@ -17,9 +38,67 @@ const Configurations = () => {
           <TabsTrigger value="conta">Conta</TabsTrigger>
           <TabsTrigger value="app">App</TabsTrigger>
         </TabsList>
+
         <TabsContent value="conta">
-          <AccountConfigForm />
+          {isLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <LoadingSpinner />
+            </div>
+          ) : user ? (
+            <div className="bg-card rounded-lg p-6 border space-y-4">
+              <h3 className="font-semibold text-lg mb-4">
+                Informações da Conta
+              </h3>
+
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm text-muted-foreground">Nome</p>
+                  <p className="font-medium">{user.nome}</p>
+                </div>
+
+                <div>
+                  <p className="text-sm text-muted-foreground">Email</p>
+                  <p className="font-medium">{user.email}</p>
+                </div>
+
+                <div>
+                  <p className="text-sm text-muted-foreground">Perfil</p>
+                  <Badge className="w-fit mt-1">{user.perfil_nome}</Badge>
+                </div>
+
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Propriedades ({user.propriedades?.length || 0})
+                  </p>
+                  {!user.propriedades || user.propriedades.length === 0 ? (
+                    <p className="text-sm text-muted-foreground italic">
+                      Nenhuma propriedade associada
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {user.propriedades.map((property) => (
+                        <Badge
+                          key={property.propriedade_id}
+                          variant="outline"
+                          className="w-fit"
+                        >
+                          {property.nome}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-card rounded-lg p-6 border">
+              <p className="text-muted-foreground text-center">
+                Não foi possível carregar as informações da conta
+              </p>
+            </div>
+          )}
         </TabsContent>
+
         <TabsContent value="app" className="space-y-4">
           <div className="bg-card rounded-lg p-6 border">
             <h3 className="font-semibold text-lg mb-4">Instalação do App</h3>

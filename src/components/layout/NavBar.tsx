@@ -46,8 +46,12 @@ const NavBar = () => {
 
   // Obter ID do usuário do token JWT
   useEffect(() => {
-    const id = getUserIdFromToken();
-    setUserId(id);
+    const fetchUserId = async () => {
+      const id = await getUserIdFromToken();
+      setUserId(id);
+    };
+
+    fetchUserId();
   }, []);
 
   // Buscar dados do usuário logado
